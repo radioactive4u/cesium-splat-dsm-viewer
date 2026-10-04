@@ -4,7 +4,7 @@ Open CesiumJS viewer that streams a georeferenced Gaussian splat as 3D Tiles and
 
 The open layer is the viewer. Capture (drone and street-view) is a separate service and is not in this repository.
 
-The [clickable demo](viewer/index.html) uses ion asset 4547222 until a project tileset exists. A raw PLY or SOG will not load in CesiumJS. The real URL is later: convert a trained PLY to 3D Tiles with `KHR_gaussian_splatting_compression_spz_2`, host `tileset.json` on Spaces with CORS open, then swap the asset id for that URL.
+The [clickable demo](https://radioactive4u.github.io/cesium-splat-dsm-viewer/viewer/) is the live scene and uses ion asset 4547222 until a project tileset exists. The same scene is at https://radioactive.tor1.digitaloceanspaces.com/cesium-splat-dsm-viewer/viewer/index.html. A raw PLY or SOG will not load in CesiumJS. The real URL is later: convert a trained PLY to 3D Tiles with `KHR_gaussian_splatting_compression_spz_2`, host `tileset.json` on Spaces with CORS open, then swap the asset id for that URL.
 
 ## The gap
 
@@ -29,7 +29,7 @@ This repo is that join, aimed at small and mid-sized communities that cannot car
 ## Layout
 
 - `docs/method.md` — how the DSM will be derived.
-- `viewer/` — static CesiumJS page (no build). Loads ion asset 4547222.
+- `viewer/` — static CesiumJS page (no build). Live scene: GitHub Pages `/viewer/` and Spaces `cesium-splat-dsm-viewer/viewer/index.html`.
 - `samples/` — tileset and DSM samples (not yet).
 
 ## License
