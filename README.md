@@ -4,6 +4,8 @@ Open CesiumJS viewer that streams a georeferenced Gaussian splat as 3D Tiles and
 
 The open layer is the viewer. Capture (drone and street-view) is a separate service and is not in this repository.
 
+The [clickable demo](viewer/index.html) uses ion asset 4547222 until a project tileset exists. A raw PLY or SOG will not load in CesiumJS. The real URL is later: convert a trained PLY to 3D Tiles with `KHR_gaussian_splatting_compression_spz_2`, host `tileset.json` on Spaces with CORS open, then swap the asset id for that URL.
+
 ## The gap
 
 Splat viewers render. Satellite Gaussian-splatting papers extract DSMs offline. The Ohio State 3DGS measurement tool picks points by multi-view ray triangulation in Cesium. Nobody joins those: a derived DSM as its own layer in a public CesiumJS viewer, measured by someone who is not a photogrammetrist.
@@ -27,7 +29,7 @@ This repo is that join, aimed at small and mid-sized communities that cannot car
 ## Layout
 
 - `docs/method.md` — how the DSM will be derived.
-- `viewer/` — CesiumJS app (not yet).
+- `viewer/` — static CesiumJS page (no build). Loads ion asset 4547222.
 - `samples/` — tileset and DSM samples (not yet).
 
 ## License
