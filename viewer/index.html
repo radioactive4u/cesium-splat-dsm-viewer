@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>splat-dsm-viewer</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.122/Build/Cesium/Cesium.js"></script>
+  <link href="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.122/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <style>
+    html, body, #cesiumContainer { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    #note { position: absolute; top: 12px; left: 12px; z-index: 10; max-width: 360px; padding: 10px 12px; background: rgba(16, 18, 20, 0.82); color: #f2f2f2; font: 13px/1.4 sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="note">Skeleton. Ellipsoid only, no Ion token. Splat tileset and DSM overlay are the next commits.</div>
+  <div id="cesiumContainer"></div>
+  <script>
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      baseLayerPicker: false,
+      geocoder: false,
+      animation: false,
+      timeline: false
+    });
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(-116.916, 49.912, 2500)
+    });
+  </script>
+</body>
+</html>
