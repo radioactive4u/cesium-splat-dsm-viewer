@@ -4,50 +4,141 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>splat-dsm-viewer</title>
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Cesium.js"></script>
-  <link href="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
   <style>
-    html, body, #cesiumContainer { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
-    #note { position: absolute; top: 12px; left: 12px; z-index: 10; max-width: 420px; padding: 10px 12px; background: rgba(16, 18, 20, 0.82); color: #f2f2f2; font: 13px/1.4 sans-serif; }
+    html, body, #c { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    #note {
+      position: absolute; top: 12px; left: 12px; z-index: 10;
+      max-width: 460px; padding: 10px 12px;
+      background: rgba(16, 18, 20, 0.85); color: #f2f2f2;
+      font: 13px/1.4 sans-serif;
+    }
     #note p { margin: 0; }
+    #note .hint { color: #9fb3c8; margin-top: 6px; }
     #error { margin-top: 8px; color: #ffb4b4; }
+    #measure {
+      position: absolute; bottom: 12px; left: 12px; z-index: 10;
+      padding: 8px 12px; background: rgba(16, 18, 20, 0.85); color: #f2f2f2;
+      font: 13px/1.4 sans-serif;
+    }
   </style>
 </head>
 <body>
   <div id="note">
-    <p id="caption">Stand-in tileset, Microsoft Redmond campus, Cesium ion 4547222, not project data.</p>
+    <p id="caption">Gaussian splat tileset streamed as 3D Tiles (SPZ-compressed GLB, KHR_gaussian_splatting) via 3d-tiles-renderer + Gaussian Splat Lite. Swap the tileset URL below for your own converted capture.</p>
+    <p class="hint">Click two points on the splat surface to measure distance. Markers and the line are drawn in the scene; the distance prints below.</p>
     <p id="error" hidden></p>
   </div>
-  <div id="cesiumContainer"></div>
-  <script>
-    const errorEl = document.getElementById("error");
+  <div id="measure">Distance: —</div>
+  <canvas id="c"></canvas>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TilesRenderer } from '3d-tiles-renderer';
+    import { TilesFadePlugin } from '3d-tiles-renderer/plugins';
+    import { GaussianSplatPlugin } from '3d-tiles-rendererjs-3dgs-plugin';
+    import { GaussianSplatRenderer } from 'gaussian-splat-lite';
+
+    // ---- config ----
+    // Point this at a tileset.json produced by 3DGS-PLY-3DTiles-Converter
+    // (e.g. hosted on a CORS-enabled bucket). The plugin's own repo ships
+    // sample tilesets you can use before you have your own capture.
+    const TILESET_URL = 'tileset.json';
+
+    const canvas = document.getElementById('c');
+    const errorEl = document.getElementById('error');
+    const measureEl = document.getElementById('measure');
 
     function showError(error) {
       const message = error && error.message ? error.message : String(error);
       errorEl.hidden = false;
-      errorEl.textContent = "Tileset failed to load: " + message;
+      errorEl.textContent = 'Tileset failed to load: ' + message;
       console.error(error);
     }
 
-    (async function () {
-      try {
-        if (typeof Cesium === "undefined") {
-          throw new Error("CesiumJS did not load.");
-        }
-        const viewer = new Cesium.Viewer("cesiumContainer", {
-          terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-          baseLayerPicker: false,
-          geocoder: false,
-          animation: false,
-          timeline: false
-        });
-        const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4547222);
-        viewer.scene.primitives.add(tileset);
-        await viewer.zoomTo(tileset);
-      } catch (error) {
-        showError(error);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1e7);
+    camera.position.set(0, 0, 50);
+
+    const tiles = new TilesRenderer(TILESET_URL);
+    tiles.setCamera(camera);
+    tiles.setResolutionFromRenderer(renderer);
+    tiles.registerPlugin(new TilesFadePlugin());
+    tiles.registerPlugin(new GaussianSplatPlugin());
+    scene.add(tiles.group);
+
+    const splatRenderer = new GaussianSplatRenderer({ renderer });
+    scene.add(splatRenderer);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+
+    // ---- click-to-measure (distance) ----
+    // Raycasts against the splat depth buffer. First click drops marker A,
+    // second click drops marker B, draws the line, prints distance in meters.
+    // This is the grant demo's one working measurement tool — the full
+    // height/area/uncertainty version is milestone 3.
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const markers = [];
+    const markerGeo = new THREE.SphereGeometry(0.35, 16, 16);
+    const markerMat = new THREE.MeshBasicMaterial({ color: 0xffcc33 });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x33ccff });
+    let line = null;
+
+    function onPointerDown(event) {
+      pointer.x = (event.clientX / innerWidth) * 2 - 1;
+      pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      // Intersect against the splat group (tiles.group) — the plugin
+      // exposes splat geometry the raycaster can hit.
+      const hits = raycaster.intersectObject(tiles.group, true);
+      if (!hits.length) return;
+
+      const point = hits[0].point;
+      const marker = new THREE.Mesh(markerGeo, markerMat);
+      marker.position.copy(point);
+      scene.add(marker);
+      markers.push(marker);
+
+      if (markers.length === 2) {
+        const a = markers[0].position;
+        const b = markers[1].position;
+        const geom = new THREE.BufferGeometry().setFromPoints([a, b]);
+        line = new THREE.Line(geom, lineMat);
+        scene.add(line);
+
+        const dist = a.distanceTo(b);
+        measureEl.textContent = 'Distance: ' + dist.toFixed(2) + ' m';
+
+        // reset for another measurement
+        markers.forEach(m => scene.remove(m));
+        markers.length = 0;
+        if (line) { scene.remove(line); line = null; }
+      } else {
+        measureEl.textContent = 'Distance: click second point…';
       }
-    })();
+    }
+    canvas.addEventListener('pointerdown', onPointerDown);
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    renderer.setAnimationLoop(() => {
+      tiles.update();
+      controls.update();
+      renderer.render(scene, camera);
+    });
   </script>
 </body>
 </html>
