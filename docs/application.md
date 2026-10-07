@@ -56,6 +56,10 @@ The rendering and conversion components build on existing open-source libraries 
 
 radioactive4u.github.io/cesium-splat-dsm-viewer — static viewer page streaming a splat tileset with click-to-measure distance.
 
+## Stretch goal: satellite-to-splat pipeline
+
+If the core deliverables land early, the stretch goal is removing the capture cost entirely: train Gaussian splats directly from satellite imagery (PlanetScope or similar), tile them to 3D Tiles, and derive the DSM from those splats. This follows the EOGS and GU-GS line of research — satellite imagery as the capture source rather than drone or ground-based captures. The value for a municipality is that no field campaign, drone flights, or permits are needed: imagery is ordered, processed, and served. The honest caveat is that satellite splats are lower resolution than drone captures, so DSM accuracy drops — this is a rough approximation, not a survey product, and it would be labeled as such in the documentation. This is explicitly a stretch goal, not a deliverable.
+
 ## Budget
 
 $15,000 over three months (individual cap), covering development time for the viewer, DSM derivation, measurement tools, export pipeline, and documentation.
