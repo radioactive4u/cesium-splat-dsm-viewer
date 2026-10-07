@@ -2,6 +2,8 @@
 
 Open-source viewer for 3D Gaussian splat tilesets with a derived DSM layer and in-browser measurement tools. No public tool combines splat rendering, measurable terrain, and standard exports (GeoJSON, KML).
 
+**Live demo:** [radioactive4u.github.io/cesium-splat-dsm-viewer](https://radioactive4u.github.io/cesium-splat-dsm-viewer/) (enable GitHub Pages in repo settings if the link 404s)
+
 ## The gap
 
 Splat viewers render. GIS platforms measure. Nobody joins those: a derived DSM as its own layer in a public viewer, measured by someone who is not a photogrammetrist, with export to the formats practitioners already use.
@@ -49,7 +51,7 @@ The rendering and conversion components build on existing open-source libraries 
 ## Layout
 
 - `docs/method.md` — how the DSM will be derived
-- `viewer/` — static viewer page (no build)
+- `viewer/` — static viewer page (no build): streams a splat tileset, click-to-measure distance
 - `samples/` — tileset and DSM samples (not yet)
 
 ## License
