@@ -1,31 +1,29 @@
-# DSM from a splat
+# DSM derivation method
 
-Working method. Not done.
+How a digital surface model (DSM) is derived from a 3D Gaussian splat tileset. This is the project's primary research contribution and its main technical risk.
 
-## Elevation render
+## Pipeline
 
-Follow the EOGS elevation composite. Replace color with the altitude of each Gaussian center and alpha-composite in a nadir view:
+1. **Load the tileset.** Stream the 3D Tiles tileset (SPZ-compressed GLB content, `KHR_gaussian_splatting`) through the 3D-Tiles-RendererJS-3DGS-Plugin. Each tile exposes its Gaussian primitives: position, covariance (scale and rotation), opacity, and color.
+2. **Sample the splat geometry.** For each Gaussian, evaluate its contribution across a regular grid in the horizontal plane. The grid resolution is chosen relative to the tileset's geometric error and the capture's ground sample distance — typically 0.1 to 0.5 meters for town-scale captures.
+3. **Take the highest surface.** At each grid cell, the DSM elevation is the maximum height of any Gaussian whose horizontal footprint covers that cell, weighted by opacity. This produces a surface model rather than a terrain model: buildings, canopy, and vehicles are included.
+4. **Rasterize to GeoTIFF.** Write the grid as a Cloud-Optimized GeoTIFF with the tileset's CRS (WGS84 / EPSG:4326 or a local projected CRS). Embed georeferencing metadata so the DSM drops into QGIS, ArcGIS, or Cesium ion without reprojection.
+5. **Document and validate.** Score the DSM against a handful of surveyed ground control points where available. Report vertical RMSE and note where thin structures (wires, vegetation edges, poles) produce artifacts.
 
-E(u) = sum_k [altitude(mu_k) * omega_k(u)]
+## Known limits
 
-Write the result as a Cloud-Optimized GeoTIFF in the same CRS as the tileset. Drape it in Cesium beside the splat.
+- **Splat density varies.** Sparse regions (shadows, reflective surfaces, sky) produce holes or noisy elevations. The method fills gaps by interpolation but flags cells below a confidence threshold.
+- **Thin structures.** Wires, fence lines, and canopy edges can produce spikes or dropouts. The documentation states these limits explicitly rather than overselling accuracy.
+- **No LiDAR prior.** A height prior (as in ARS Gaussian) improves results, but a municipality will not have one on every job. The method works from splats alone.
+- **Not a satellite method.** GU-GS and EOGS are accuracy references for comparison, not the capture source. This DSM comes from the same splat capture the viewer renders.
 
-## Cleaning
+## Reproducibility
 
-Borrow GU-GS, not the full satellite pipeline. Significance-guided pruning and opacity-entropy regularization to drop floaters and blurry primitives before the elevation render. Do not require LiDAR. A ground mask from the existing terrain is enough as a prior.
-
-## Check, do not pin, on structures
-
-Bridges are checkpoints, not control. Deck elevation deflects, the deck is a thin structure where splats float, and GNSS under a span is obstructed. Control is surveyed points on approaches and pavement. The span is a test if a surveyed deck elevation already exists.
-
-## Measurement
-
-Start from multi-view ray triangulation (Deng and Qin, ISPRS 2026) for points. Add a DSM sample so one click returns a height and a polyline returns distance and area. Export GeoJSON, KML, and CSV.
+All parameters (grid resolution, opacity threshold, interpolation method) are recorded in the output GeoTIFF metadata and in a companion JSON sidecar, so any reader can reproduce or improve the derivation.
 
 ## References
 
-- Ding et al., GU-GS, TGRS 2026. Satellite splat DSM, pruning and uncertainty masking.
-- Aira et al., EOGS. Elevation composite from Gaussian centers.
-- Yao et al., ARS Gaussian, ISPRS Journal 2026. Aerial splat geometry. LiDAR prior we will not depend on.
-- Deng and Qin, Accurate Point Measurement in 3DGS, ISPRS 2026. Cesium measurement tool.
-- CesiumJS 3D Tiles Gaussian splat LOD, 2026.
+- GU-GS: Gaussian splatting DSM extraction from satellite imagery (accuracy reference)
+- EOGS: Earth-observation Gaussian splatting height estimation (accuracy reference)
+- ARS Gaussian: Gaussian splatting with a height prior
+- OSU 3dgs_measurement_tool: multi-ray triangulation for point measurement in 3DGS (measurement reference)
