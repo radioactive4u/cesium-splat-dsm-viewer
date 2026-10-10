@@ -1,69 +1,38 @@
-# Cesium Ecosystem Grant — Application Draft
+# Cesium Ecosystem Grant: project description
 
-## Summary (400-character field)
-
-Open-source viewer for 3D Gaussian splat tilesets with a derived DSM layer and in-browser measurement tools. No public tool combines splat rendering, measurable terrain, and standard exports (GeoJSON, KML). Live demo: radioactive4u.github.io/cesium-splat-dsm-viewer. Deliverables: viewer, documented DSM method, sample datasets, export pipeline.
-
-## Project Description (6,000-character field)
-
-# Project Description
+Splat Measure for CesiumJS: an open-source plugin for measuring Gaussian splat scenes on free lidar terrain. Applicant: Lucas Crawford, individual, 9 months, USD 15,000 cap.
 
 ## The gap
 
-Splat viewers render. GIS platforms measure. Nobody joins those: a derived DSM as its own layer in a public viewer, measured by someone who is not a photogrammetrist, with export to the formats practitioners already use.
+Cesium's public viewer streams 3D Gaussian splats through 3D Tiles (`KHR_gaussian_splatting`), but there is no tool in it to measure inside a splat scene. Picking on splats is still an open CesiumJS issue (#13326). Splat viewers render, GIS platforms measure, and nobody joins the two.
 
-This repo is that join, aimed at small and mid-sized municipalities that cannot carry an enterprise GIS subscription.
+## Approach: measure on lidar, view in splats
 
-## Motivation and use case
+The measurement surface is not derived from the splats. It comes from free, open lidar-derived DSMs and DEMs at 1 m or better that already cover much of North America (HRDEM 1 m, LidarBC 1 m, USGS 3DEP). The splat gives photoreal context; every number comes from the lidar surface.
 
-My motivation is practical: small and medium-sized municipalities are priced out of professional GIS by enterprise licensing like Esri. This project offers a cloud-native, open-source alternative — a browser viewer serving 3D Gaussian splat imagery with a derived DSM, in-browser measurement, and GeoJSON and KML export. A municipality could capture its own assets, host tilesets on commodity cloud storage, and give staff a measurable 3D map without proprietary licenses.
+## What will be built (Apache-2.0)
 
-## What this project adds
+1. A CesiumJS measuring plugin for a Cesium Viewer with a splat tileset loaded.
+2. A documented lidar terrain and alignment step, with the splat-to-lidar offset reported.
+3. Widgets: point, distance, height difference, polyline, polygon, area.
+4. Dataset metadata (source, year, resolution, vertical datum) shown with every measurement; heights kept in CGVD2013 in Canada.
+5. Export to GeoJSON, KML and CSV.
+6. A static-hosting deploy recipe (bucket, no login, no GIS licence; Cesium ion optional).
+7. A public accuracy report against surveyed checkpoints, two open demo scenes, and tutorials.
 
-The rendering and conversion components build on existing open-source libraries (3d-tiles-renderer, Gaussian Splat Lite, 3DGS-PLY-3DTiles-Converter). This project's original contribution is the integration layer: the DSM derivation method, in-browser measurement tools with uncertainty-aware point placement, and the measurement-to-export pipeline producing GeoJSON and KML directly from the viewer. No existing open project combines all three.
+## Audience
 
-## What this is not
+Members of the public and municipal staff. Small and mid-sized towns can self-host it instead of paying for an enterprise GIS licence.
 
-- Not a new Gaussian splatting trainer. Splats come from an existing pipeline and are tiled to 3D Tiles (KHR_gaussian_splatting).
-- Not a satellite DSM method. GU-GS and EOGS are the accuracy references, not the capture source.
-- Not LiDAR-dependent. A height prior helps; a town will not have one on every job.
-- PlanetScope is a change-detection source, not the height source.
+## Milestones (9 months)
 
-## Technical approach
+- M1, month 2: CesiumJS viewer with a splat tileset and lidar terrain in one scene
+- M2, month 3: measurement and alignment method documented
+- M3, month 4: measuring widgets and GeoJSON, KML, CSV export
+- M4, month 6: accuracy report and first demo scene
+- M5, month 8: second demo scene, tutorials, deploy recipe
+- M6, month 9: final release and demo at the Cesium Developer Conference 2027
 
-1. Conversion: PLY-format Gaussian splat captures are converted to hierarchical 3D Tiles tilesets using the open-source 3DGS-PLY-3DTiles-Converter (Apache-2.0). Output tiles use SPZ-compressed GLB content with adaptive k-d tree LOD. WGS84 placement is supported via a coordinate flag.
-2. Rendering: The 3D-Tiles-RendererJS-3DGS-Plugin streams splat tiles into a Three.js scene via Gaussian Splat Lite, supporting WebGPU and WebGL2, ECEF and GIS coordinates, and tile disposal with memory accounting.
-3. DSM derivation: The splat point cloud is sampled to a regular grid and rasterized into a GeoTIFF DSM. The method is documented in docs/method.md. Main technical risk: splat density varies, and thin structures (wires, vegetation edges) can produce artifacts. Limits are stated explicitly.
-4. Measurement: In-browser tools for point, distance, height, and area measurement, built on raycasting against the splat depth buffer. The OSU 3dgs_measurement_tool (multi-ray triangulation with uncertainty ellipsoids) is the reference implementation.
-5. Export: Measured geometry exports to GeoJSON and KML, interoperable with QGIS, ArcGIS, and Cesium ion.
+## Status
 
-## Milestones
-
-1. Viewer loads one georeferenced splat tileset. One working distance measurement.
-2. Nadir elevation render from trained splats, written as a Cloud-Optimized GeoTIFF, draped in the same scene. Scored against a few surveyed points.
-3. Height, distance, and area read from that DSM. Export GeoJSON, KML, CSV.
-4. One town-scale example, deploy notes, accuracy table.
-
-## Deliverables
-
-- A public, hosted viewer loading at least one real-world splat tileset
-- Documented DSM derivation method with sample code and a worked example
-- At least two sample datasets (one urban, one natural) with converted tilesets
-- An export pipeline producing GeoJSON and KML from in-browser measurements
-- A README covering setup, conversion, and usage for non-expert users
-
-## Live demo
-
-radioactive4u.github.io/cesium-splat-dsm-viewer — static viewer page streaming a splat tileset with click-to-measure distance.
-
-## Stretch goal: satellite-to-splat pipeline
-
-If the core deliverables land early, the stretch goal is removing the capture cost entirely: train Gaussian splats directly from satellite imagery (PlanetScope or similar), tile them to 3D Tiles, and derive the DSM from those splats. This follows the EOGS and GU-GS line of research — satellite imagery as the capture source rather than drone or ground-based captures. The value for a municipality is that no field campaign, drone flights, or permits are needed: imagery is ordered, processed, and served. The honest caveat is that satellite splats are lower resolution than drone captures, so DSM accuracy drops — this is a rough approximation, not a survey product, and it would be labeled as such in the documentation. This is explicitly a stretch goal, not a deliverable.
-
-## Budget
-
-$15,000 over three months (individual cap), covering development time for the viewer, DSM derivation, measurement tools, export pipeline, and documentation.
-
-## Duration
-
-Three months.
+This repository is an early placeholder that is being built out. Nothing here claims a finished plugin.
